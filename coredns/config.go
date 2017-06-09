@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"k8s.io/kubernetes/federation/pkg/dnsprovider"
+	k8scoredns "k8s.io/kubernetes/federation/pkg/dnsprovider/providers/coredns"
 	"k8s.io/kubernetes/federation/pkg/dnsprovider/rrstype"
 )
 
@@ -22,10 +23,8 @@ type dnsOp struct {
 	changesets map[string]dnsprovider.ResourceRecordChangeset
 }
 
-type RecordType string
-
 type recordKey struct {
-	RecordType RecordType
+	RecordType string
 	FQDN       string
 }
 
@@ -38,20 +37,30 @@ type rrsetData struct {
 const dnsProviderId = "coredns"
 
 func (c *Config) newDNSOp() (*dnsOp, error) {
-	var dnsProvider dnsprovider.Interface
 	var file io.Reader
 	var lines []string
 	lines = append(lines, "etcd-endpoints = "+c.EtcdEndpoints)
 	lines = append(lines, "zones = "+c.Zones)
 	config := "[global]\n" + strings.Join(lines, "\n") + "\n"
+	log.Printf("%v", config)
 	file = bytes.NewReader([]byte(config))
 
-	dnsProvider, err := dnsprovider.GetDnsProvider(dnsProviderId, file)
+	var provider dnsprovider.Interface
+
+	if k8scoredns.ProviderName != dnsProviderId {
+		return nil, fmt.Errorf("provider mismatch coreos != %s", dnsProviderId)
+	}
+
+	provider, err := dnsprovider.GetDnsProvider(dnsProviderId, file)
+
 	if err != nil {
 		return nil, err
 	}
+	if provider == nil {
+		return nil, fmt.Errorf("unknown DNS provider %q", dnsProviderId)
+	}
 
-	z, ok := dnsProvider.Zones()
+	z, ok := provider.Zones()
 	if !ok {
 		return nil, fmt.Errorf("no zones found")
 	}

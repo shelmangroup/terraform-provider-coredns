@@ -59,12 +59,11 @@ func makeSetFromStrings(ss []string) *schema.Set {
 func newRRSetResource(d *schema.ResourceData) (rrsetData, error) {
 	r := rrsetData{}
 
-	fqdn, _ := d.GetOk("fqdn")
-	rrtype, _ := d.GetOk("type")
-
+	fqdn := d.Get("fqdn").(string)
+	rrtype := d.Get("type").(string)
 	r.key = recordKey{
-		RecordType: rrtype.(RecordType),
-		FQDN:       fqdn.(string),
+		RecordType: rrtype,
+		FQDN:       fqdn,
 	}
 
 	if attr, ok := d.GetOk("rdata"); ok {
