@@ -108,9 +108,6 @@ func resourceCorednsRecordCreateUpdate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	if err := dns.applyChangeset(); err != nil {
-		return err
-	}
 	d.SetId(r.ID())
 	return resourceCorednsRecordRead(d, meta)
 }
@@ -132,10 +129,6 @@ func resourceCorednsRecordDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	if err := dns.deleteRecords(r.key); err != nil {
-		return err
-	}
-
-	if err := dns.applyChangeset(); err != nil {
 		return err
 	}
 

@@ -108,21 +108,6 @@ func (o *dnsOp) findZone(fqdn string) dnsprovider.Zone {
 	}
 }
 
-func (o *dnsOp) getChangeset(zone dnsprovider.Zone) (dnsprovider.ResourceRecordChangeset, error) {
-	key := zone.Name() + "::" + zone.ID()
-	changeset := o.changesets[key]
-	if changeset == nil {
-		rrsProvider, ok := zone.ResourceRecordSets()
-		if !ok {
-			return nil, fmt.Errorf("zone does not support resource records %q", zone.Name())
-		}
-		changeset = rrsProvider.StartChangeset()
-		o.changesets[key] = changeset
-	}
-
-	return changeset, nil
-}
-
 func (o *dnsOp) getRecord(k recordKey) (dnsprovider.ResourceRecordSet, error) {
 	fqdn := EnsureDotSuffix(k.FQDN)
 
@@ -178,10 +163,8 @@ func (o *dnsOp) deleteRecords(k recordKey) error {
 		return fmt.Errorf("Failed to get DNS record %s with error: %v", fqdn, err)
 	}
 
-	cs, err := o.getChangeset(zone)
-	if err != nil {
-		return err
-	}
+	cs := rrsProvider.StartChangeset()
+
 	for _, rr := range rrs {
 		rrName := EnsureDotSuffix(rr.Name())
 		if rrName != fqdn {
@@ -195,6 +178,9 @@ func (o *dnsOp) deleteRecords(k recordKey) error {
 
 		log.Printf("Deleting resource record %s %s", rrName, rr.Type())
 		cs.Remove(rr)
+	}
+	if err := cs.Apply(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -238,10 +224,7 @@ func (o *dnsOp) updateRecords(k recordKey, newRecords []string, ttl int64) error
 		existing = rr
 	}
 
-	cs, err := o.getChangeset(zone)
-	if err != nil {
-		return err
-	}
+	cs := rrsProvider.StartChangeset()
 
 	if existing != nil {
 		log.Printf("will replace existing dns record %s %s", existing.Type(), existing.Name())
@@ -251,21 +234,9 @@ func (o *dnsOp) updateRecords(k recordKey, newRecords []string, ttl int64) error
 	log.Printf("Adding DNS changes to batch %s %s", k, newRecords)
 	rr := rrsProvider.New(fqdn, newRecords, ttl, rrstype.RrsType(k.RecordType))
 	cs.Add(rr)
-
-	return nil
-}
-
-func (o *dnsOp) applyChangeset() error {
-	var errors []error
-	for key, changeset := range o.changesets {
-		log.Printf("applying DNS changeset for zone %s", key)
-		if err := changeset.Apply(); err != nil {
-			log.Printf("error applying DNS changeset for zone %s: %v", key, err)
-			errors = append(errors, fmt.Errorf("error applying DNS changeset for zone %s: %v", key, err))
-		}
+	if err := cs.Apply(); err != nil {
+		return err
 	}
-	if len(errors) != 0 {
-		return errors[0]
-	}
+
 	return nil
 }
