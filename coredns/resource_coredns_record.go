@@ -80,6 +80,7 @@ func newRRSetResource(d *schema.ResourceData) (rrsetData, error) {
 
 	return r, nil
 }
+
 func populateResourceDataFromRRSet(r dnsprovider.ResourceRecordSet, d *schema.ResourceData) error {
 	// type
 	d.Set("type", r.Type())
@@ -110,6 +111,7 @@ func resourceCorednsRecordCreateUpdate(d *schema.ResourceData, meta interface{})
 	if err := dns.applyChangeset(); err != nil {
 		return err
 	}
+	d.SetId(r.ID())
 	return resourceCorednsRecordRead(d, meta)
 }
 

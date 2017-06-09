@@ -34,6 +34,10 @@ type rrsetData struct {
 	ttl   int64
 }
 
+func (r rrsetData) ID() string {
+	return fmt.Sprintf("%s", EnsureDotSuffix(r.key.FQDN))
+}
+
 const dnsProviderId = "coredns"
 
 func (c *Config) newDNSOp() (*dnsOp, error) {
