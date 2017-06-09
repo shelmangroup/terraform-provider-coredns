@@ -81,20 +81,24 @@ func newRRSetResource(d *schema.ResourceData) (rrsetData, error) {
 	return r, nil
 }
 
-func populateResourceDataFromRRSet(r dnsprovider.ResourceRecordSet, d *schema.ResourceData) error {
+func populateResourceDataFromRRSet(rs []dnsprovider.ResourceRecordSet, d *schema.ResourceData) error {
 	// type
-	d.Set("type", r.Type())
+	d.Set("type", rs[0].Type())
 	// ttl
-	d.Set("ttl", r.Ttl())
+	d.Set("ttl", rs[0].Ttl())
 	// rdata
-	rdata := r.Rrdatas()
-
+	var rdata []string
+	for _, r := range rs {
+		for _, d := range r.Rrdatas() {
+			rdata = append(rdata, d)
+		}
+	}
 	err := d.Set("rdata", makeSetFromStrings(rdata))
 	if err != nil {
 		return fmt.Errorf("coredns_record.rdata set failed: %#v", err)
 	}
 	// hostname
-	d.Set("hostname", r.Name())
+	d.Set("hostname", rs[0].Name())
 	return nil
 }
 

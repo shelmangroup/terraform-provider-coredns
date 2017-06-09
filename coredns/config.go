@@ -108,7 +108,7 @@ func (o *dnsOp) findZone(fqdn string) dnsprovider.Zone {
 	}
 }
 
-func (o *dnsOp) getRecord(k recordKey) (dnsprovider.ResourceRecordSet, error) {
+func (o *dnsOp) getRecord(k recordKey) ([]dnsprovider.ResourceRecordSet, error) {
 	fqdn := EnsureDotSuffix(k.FQDN)
 
 	zone := o.findZone(fqdn)
@@ -125,21 +125,7 @@ func (o *dnsOp) getRecord(k recordKey) (dnsprovider.ResourceRecordSet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get DNS record %s with error: %v", fqdn, err)
 	}
-	for _, rr := range rrs {
-		rrName := EnsureDotSuffix(rr.Name())
-		if rrName != fqdn {
-			log.Printf("Skipping delete of record %q (name != %s)", rrName, fqdn)
-			continue
-		}
-		if string(rr.Type()) != string(k.RecordType) {
-			log.Printf("Skipping delete of record %q (type %s != %s)", rrName, rr.Type(), k.RecordType)
-			continue
-		}
-
-		log.Printf("Found resource record %s %s", rrName, rr.Type())
-		return rr, nil
-	}
-	return nil, fmt.Errorf("Resource record %s %s not found", fqdn, k.RecordType)
+	return rrs, nil
 
 }
 
