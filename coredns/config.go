@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"log"
 
@@ -19,8 +20,9 @@ type Config struct {
 }
 
 type dnsOp struct {
-	zones      map[string]dnsprovider.Zone
-	changesets map[string]dnsprovider.ResourceRecordChangeset
+	zones map[string]dnsprovider.Zone
+
+	mu sync.Mutex
 }
 
 type recordKey struct {
@@ -46,7 +48,6 @@ func (c *Config) newDNSOp() (*dnsOp, error) {
 	lines = append(lines, "etcd-endpoints = "+c.EtcdEndpoints)
 	lines = append(lines, "zones = "+c.Zones)
 	config := "[global]\n" + strings.Join(lines, "\n") + "\n"
-	log.Printf("%v", config)
 	file = bytes.NewReader([]byte(config))
 
 	var provider dnsprovider.Interface
@@ -81,8 +82,7 @@ func (c *Config) newDNSOp() (*dnsOp, error) {
 	}
 
 	return &dnsOp{
-		zones:      allZoneMap,
-		changesets: make(map[string]dnsprovider.ResourceRecordChangeset),
+		zones: allZoneMap,
 	}, nil
 }
 
@@ -109,6 +109,8 @@ func (o *dnsOp) findZone(fqdn string) dnsprovider.Zone {
 }
 
 func (o *dnsOp) getRecord(k recordKey) ([]dnsprovider.ResourceRecordSet, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	fqdn := EnsureDotSuffix(k.FQDN)
 
 	zone := o.findZone(fqdn)
@@ -130,6 +132,8 @@ func (o *dnsOp) getRecord(k recordKey) ([]dnsprovider.ResourceRecordSet, error) 
 }
 
 func (o *dnsOp) deleteRecords(k recordKey) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	log.Printf("Deleting all records for %s", k)
 
 	fqdn := EnsureDotSuffix(k.FQDN)
@@ -172,6 +176,8 @@ func (o *dnsOp) deleteRecords(k recordKey) error {
 }
 
 func (o *dnsOp) updateRecords(k recordKey, newRecords []string, ttl int64) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	fqdn := EnsureDotSuffix(k.FQDN)
 
 	zone := o.findZone(fqdn)
