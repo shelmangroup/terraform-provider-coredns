@@ -1,0 +1,14 @@
+package: github.com/shelmangroup/terraform-coredns
+import:
+- package: github.com/hashicorp/terraform
+  version: ~0.9.7
+  subpackages:
+  - helper/schema
+  - plugin
+  - terraform
+- package: k8s.io/kubernetes
+  version: ~1.7.0-beta.1
+  subpackages:
+  - federation/pkg/dnsprovider
+  - federation/pkg/dnsprovider/providers/coredns
+  - federation/pkg/dnsprovider/rrstype
