@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/shelmangroup/terraform-coredns/coredns"
+	"github.com/shelmangroup/terraform-provider-coredns/coredns"
 )
 
 func main() {
