@@ -1,4 +1,4 @@
-# terraform-coredns
+# terraform-provider-coredns
 
 ## Example
 ```
