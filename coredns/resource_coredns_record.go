@@ -123,6 +123,9 @@ func resourceCorednsRecordRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	if len(rset) < 1 {
+		return fmt.Errorf("Failed to get DNS records")
+	}
 	return populateResourceDataFromRRSet(rset, d)
 }
 
